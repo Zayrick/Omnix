@@ -1,57 +1,88 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import cloudflareLogo from './assets/Cloudflare_Logo.svg'
+import { Portal } from '@ark-ui/react/portal'
+import { Select, createListCollection } from '@ark-ui/react/select'
+import { ChevronDownIcon, PanelLeftOpen, PanelLeftClose, Home, Settings, User, FileText, Star, Bell } from 'lucide-react'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-  const [name, setName] = useState('unknown')
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  const collection = createListCollection({
+    items: [
+      { value: 'option1', label: '选项一' },
+      { value: 'option2', label: '选项二' },
+      { value: 'option3', label: '选项三' },
+    ],
+  })
+
+  const menuItems = [
+    { icon: Home, label: '首页', id: 'home' },
+    { icon: FileText, label: '文档', id: 'docs' },
+    { icon: Star, label: '收藏', id: 'favorites' },
+    { icon: Bell, label: '通知', id: 'notifications' },
+    { icon: User, label: '个人中心', id: 'profile' },
+    { icon: Settings, label: '设置', id: 'settings' },
+  ]
 
   return (
-    <>
-      <div>
-        <a href='https://vite.dev' target='_blank'>
-          <img src={viteLogo} className='logo' alt='Vite logo' />
-        </a>
-        <a href='https://react.dev' target='_blank'>
-          <img src={reactLogo} className='logo react' alt='React logo' />
-        </a>
-        <a href='https://workers.cloudflare.com/' target='_blank'>
-          <img src={cloudflareLogo} className='logo cloudflare' alt='Cloudflare logo' />
-        </a>
+    <div className={`app-layout ${menuOpen ? 'menu-open' : ''}`}>
+      {/* 侧边菜单 - 在页面边距之外 */}
+      <aside className="sidebar">
+        <nav className="sidebar-nav">
+          {menuItems.map((item) => (
+            <button key={item.id} className="sidebar-item">
+              <item.icon size={20} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <span className="sidebar-version">v1.0.0</span>
+        </div>
+      </aside>
+
+      {/* 移动端遮罩层 */}
+      <div className="sidebar-overlay" onClick={() => setMenuOpen(false)} />
+
+      <div className="page-container">
+        {/* 顶部区域 */}
+        <header className="header">
+          {/* 菜单按钮 */}
+          <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
+            {menuOpen ? <PanelLeftClose size={22} /> : <PanelLeftOpen size={22} />}
+          </button>
+
+          <Select.Root collection={collection} defaultValue={['option1']}>
+            <Select.Control className="select-control">
+              <Select.Trigger className="select-trigger">
+                <Select.ValueText placeholder="请选择" />
+                <Select.Indicator className="select-indicator">
+                  <ChevronDownIcon size={18} />
+                </Select.Indicator>
+              </Select.Trigger>
+            </Select.Control>
+            <Portal>
+              <Select.Positioner>
+                <Select.Content className="select-content">
+                  {collection.items.map((item) => (
+                    <Select.Item key={item.value} item={item} className="select-item">
+                      <Select.ItemText>{item.label}</Select.ItemText>
+                      <Select.ItemIndicator className="select-item-indicator">✓</Select.ItemIndicator>
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Portal>
+            <Select.HiddenSelect />
+          </Select.Root>
+        </header>
+
+        {/* 内容区域 */}
+        <main className="main-content">
+          {/* 这里放置页面主要内容 */}
+        </main>
       </div>
-      <h1>Vite + React + Cloudflare</h1>
-      <div className='card'>
-        <button
-          onClick={() => setCount((count) => count + 1)}
-          aria-label='increment'
-        >
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <div className='card'>
-        <button
-          onClick={() => {
-            fetch('/api/')
-              .then((res) => res.json() as Promise<{ name: string }>)
-              .then((data) => setName(data.name))
-          }}
-          aria-label='get name'
-        >
-          Name from API is: {name}
-        </button>
-        <p>
-          Edit <code>worker/index.ts</code> to change the name
-        </p>
-      </div>
-      <p className='read-the-docs'>
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    </div>
   )
 }
 
