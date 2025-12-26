@@ -3,13 +3,15 @@ import { Portal } from '@ark-ui/react/portal'
 import { Select, createListCollection } from '@ark-ui/react/select'
 import { ChevronDownIcon, CircleChevronRight, Home, Settings, User, FileText, Star, Bell } from 'lucide-react'
 import './App.css'
+import LifeKLine from './pages/LifeKLine'
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [selectedValue, setSelectedValue] = useState<string[]>(['life-kline'])
 
   const collection = createListCollection({
     items: [
-      { value: 'option1', label: '选项一' },
+      { value: 'life-kline', label: '我的人生K线' },
       { value: 'option2', label: '选项二' },
       { value: 'option3', label: '选项三' },
     ],
@@ -52,7 +54,11 @@ function App() {
             <CircleChevronRight size={22} className={menuOpen ? 'menu-icon-rotated' : ''} />
           </button>
 
-          <Select.Root collection={collection} defaultValue={['option1']}>
+          <Select.Root 
+            collection={collection} 
+            defaultValue={['life-kline']}
+            onValueChange={(details) => setSelectedValue(details.value)}
+          >
             <Select.Control className="select-control">
               <Select.Trigger className="select-trigger">
                 <Select.ValueText placeholder="请选择" />
@@ -79,7 +85,13 @@ function App() {
 
         {/* 内容区域 */}
         <main className="main-content">
-          {/* 这里放置页面主要内容 */}
+          {selectedValue[0] === 'life-kline' ? (
+            <LifeKLine />
+          ) : (
+            <div className="developing-placeholder">
+              <span>正在开发中...</span>
+            </div>
+          )}
         </main>
       </div>
     </div>

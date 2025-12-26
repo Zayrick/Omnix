@@ -153,6 +153,24 @@
 /* 内容区域 */
 .main-content {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 正在开发中占位 */
+.developing-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+.developing-placeholder span {
+  font-size: 2rem;
+  color: #999;
+  font-weight: 500;
 }
 
 /* Select 组件样式 */

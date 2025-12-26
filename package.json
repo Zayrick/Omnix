@@ -13,6 +13,11 @@
 	},
 	"dependencies": {
 		"@ark-ui/react": "^5.30.0",
+		"@emotion/react": "^11.14.0",
+		"@emotion/styled": "^11.14.1",
+		"@mui/material": "^7.3.6",
+		"@mui/x-date-pickers": "^8.23.0",
+		"dayjs": "^1.11.19",
 		"lucide-react": "^0.562.0",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1"
