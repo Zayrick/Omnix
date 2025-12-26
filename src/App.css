@@ -35,6 +35,14 @@
   line-height: 1;
 }
 
+.menu-toggle svg {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu-toggle .menu-icon-rotated {
+  transform: rotate(180deg);
+}
+
 .menu-toggle:hover {
   background-color: rgba(128, 128, 128, 0.15);
 }

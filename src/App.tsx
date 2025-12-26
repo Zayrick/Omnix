@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Portal } from '@ark-ui/react/portal'
 import { Select, createListCollection } from '@ark-ui/react/select'
-import { ChevronDownIcon, PanelLeftOpen, PanelLeftClose, Home, Settings, User, FileText, Star, Bell } from 'lucide-react'
+import { ChevronDownIcon, CircleChevronRight, Home, Settings, User, FileText, Star, Bell } from 'lucide-react'
 import './App.css'
 
 function App() {
@@ -49,7 +49,7 @@ function App() {
         <header className="header">
           {/* 菜单按钮 */}
           <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
-            {menuOpen ? <PanelLeftClose size={22} /> : <PanelLeftOpen size={22} />}
+            <CircleChevronRight size={22} className={menuOpen ? 'menu-icon-rotated' : ''} />
           </button>
 
           <Select.Root collection={collection} defaultValue={['option1']}>
