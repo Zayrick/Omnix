@@ -6,9 +6,11 @@
 
 /* 页面容器 */
 .page-container {
+  --app-header-height: 50px;
+  --page-top-offset: var(--app-header-height);
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 0 30px;
   flex: 1;
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -16,10 +18,18 @@
 
 /* 顶部区域 */
 .header {
-  height: 50px;
+  height: var(--app-header-height);
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  padding: 0 30px;
+  box-sizing: border-box;
+  z-index: 1080;
 }
 
 /* 菜单切换按钮 */
@@ -57,7 +67,7 @@
   background: #1a1a1a;
   transform: translateX(-100%);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1000;
+  z-index: 1100;
   display: flex;
   flex-direction: column;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0);
@@ -72,6 +82,12 @@
 
   .menu-open .page-container {
     margin-left: 260px;
+  }
+
+  .menu-open .header {
+    left: 260px;
+    width: calc(100% - 260px);
+    right: auto;
   }
 
   /* 桌面端不显示遮罩 */
@@ -95,7 +111,7 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
+    z-index: 1070;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
@@ -157,6 +173,9 @@
   align-items: stretch;
   justify-content: stretch;
   width: 100%;
+  min-height: 0;
+  padding-top: var(--page-top-offset);
+  box-sizing: border-box;
 }
 
 /* 正在开发中占位 */

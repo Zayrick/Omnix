@@ -13,7 +13,8 @@
   --chip-bg: rgba(15, 159, 143, 0.12);
   background: linear-gradient(120deg, #f6f0e5 0%, #eef6f2 45%, #f7ebe0 100%);
   color: var(--ink);
-  min-height: 100vh;
+  box-sizing: border-box;
+  min-height: 100dvh;
   width: 100%;
   padding: 32px 28px 64px;
   position: relative;
@@ -22,6 +23,7 @@
 
 :root.life-kline-active,
 body.life-kline-active {
+  --page-top-offset: 0px;
   background: linear-gradient(120deg, #f6f0e5 0%, #eef6f2 45%, #f7ebe0 100%);
   overflow-x: hidden;
 }
@@ -741,7 +743,8 @@ body.life-kline-active {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  box-sizing: border-box;
+  min-height: 100dvh;
   padding: 24px;
 }
 
