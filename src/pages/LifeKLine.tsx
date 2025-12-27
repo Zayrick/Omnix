@@ -377,6 +377,19 @@ function LifeKLine() {
     }
   }
 
+  const handleRestart = () => {
+    abortRef.current?.abort()
+    setStreamState('idle')
+    setErrorMessage(null)
+    setAnalysis({ bazi: [], daYunList: [] })
+    setDaYunList([])
+    chartPointsRef.current.clear()
+    seriesRef.current?.setData([])
+    chartRef.current = null
+    seriesRef.current = null
+    setCurrentPage('input')
+  }
+
   const handleSubmit = async () => {
     setErrorMessage(null)
     if (!birthDate || !birthTime || !gender) {
@@ -504,7 +517,7 @@ function LifeKLine() {
       : streamState === 'streaming'
         ? 'AI解析中'
         : streamState === 'done'
-          ? '分析完成'
+          ? '再来一次'
           : streamState === 'error'
             ? '发生错误'
             : '待启动'
@@ -651,9 +664,19 @@ function LifeKLine() {
                 以干支与大运为底层逻辑，刻画人生涨跌脉冲
               </Typography>
             </div>
-            <div className={`life-kline-status life-kline-status-${streamState}`}>
-              {statusLabel}
-            </div>
+            {streamState === 'done' ? (
+              <button
+                type="button"
+                className={`life-kline-status life-kline-status-${streamState} life-kline-status-action`}
+                onClick={handleRestart}
+              >
+                {statusLabel}
+              </button>
+            ) : (
+              <div className={`life-kline-status life-kline-status-${streamState}`}>
+                {statusLabel}
+              </div>
+            )}
           </header>
 
           <section className="life-kline-board">
