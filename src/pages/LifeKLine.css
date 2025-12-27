@@ -341,9 +341,6 @@ body.life-kline-active {
 }
 
 .panel {
-}
-
-.panel {
   background: var(--paper);
   border-radius: 22px;
   border: 1px solid var(--line);
@@ -558,6 +555,34 @@ body.life-kline-active {
   font-size: 0.95rem;
   line-height: 1.55;
   min-height: 60px;
+}
+
+.trait-body-content {
+  white-space: pre-wrap;
+}
+
+.trait-body-insert {
+  animation: traitInsert 0.42s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  transform-origin: top left;
+}
+
+@keyframes traitInsert {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trait-body-insert {
+    animation: none;
+  }
 }
 
 .trait-card-loading {

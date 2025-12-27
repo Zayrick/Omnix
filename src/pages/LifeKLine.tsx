@@ -85,6 +85,11 @@ function LifeKLine() {
   const [daYunList, setDaYunList] = useState<DaYunInfo[]>([])
   const [currentPage, setCurrentPage] = useState<PageView>('input')
 
+  // 下方特质文字：插入动画（当文本首次出现/更新时触发）
+  const [traitInsertToken, setTraitInsertToken] = useState<Record<string, number>>({})
+  const prevTraitTextRef = useRef<Record<string, string | undefined>>({})
+  const traitInsertTimersRef = useRef<Record<string, number>>({})
+
   const chartContainerRef = useRef<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -92,7 +97,51 @@ function LifeKLine() {
   const chartPointsRef = useRef<Map<number, LifeKlineChartPoint>>(new Map())
   const abortRef = useRef<AbortController | null>(null)
 
+  const isTouchMode = useMediaQuery('(hover: none), (pointer: coarse)')
+
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)')
+
+  useEffect(() => {
+    // 组件卸载时清理定时器，避免泄漏
+    return () => {
+      Object.values(traitInsertTimersRef.current).forEach((timerId) => {
+        window.clearTimeout(timerId)
+      })
+      traitInsertTimersRef.current = {}
+    }
+  }, [])
+
+  useEffect(() => {
+    // 当任一 trait 文本变更且非空时，触发一次“插入动画”
+    traitCards.forEach(({ key }) => {
+      const currentText = analysis[key] as string | undefined
+      const prevText = prevTraitTextRef.current[key]
+
+      // 只对“有内容”的文本做插入动画，避免 loading/空态闪动
+      if (currentText && currentText !== prevText) {
+        setTraitInsertToken((prev) => ({
+          ...prev,
+          [key]: (prev[key] ?? 0) + 1,
+        }))
+
+        const existingTimer = traitInsertTimersRef.current[key]
+        if (existingTimer) {
+          window.clearTimeout(existingTimer)
+        }
+
+        traitInsertTimersRef.current[key] = window.setTimeout(() => {
+          setTraitInsertToken((prev) => {
+            const next = { ...prev }
+            delete next[key]
+            return next
+          })
+          delete traitInsertTimersRef.current[key]
+        }, 520)
+      }
+
+      prevTraitTextRef.current[key] = currentText
+    })
+  }, [analysis])
 
   useEffect(() => {
     const root = document.documentElement
@@ -204,36 +253,39 @@ function LifeKLine() {
       chart.timeScale().fitContent()
     }
 
-    const handleCrosshairMove = (param: MouseEventParams) => {
+    const pinnedYearRef = { current: null as number | null }
+
+    const hideTooltip = () => {
+      const tooltip = tooltipRef.current
+      if (!tooltip) {
+        return
+      }
+      tooltip.style.opacity = '0'
+    }
+
+    const yearFromTime = (time: Time): number | null => {
+      if (typeof time === 'string') {
+        const y = Number(time.slice(0, 4))
+        return Number.isFinite(y) ? y : null
+      }
+      if (typeof time === 'number') {
+        const y = new Date(time * 1000).getUTCFullYear()
+        return Number.isFinite(y) ? y : null
+      }
+      const business = time as BusinessDay
+      return Number.isFinite(business.year) ? business.year : null
+    }
+
+    const showTooltipAt = (year: number, x: number, y: number) => {
       const tooltip = tooltipRef.current
       const container = chartContainerRef.current
       if (!tooltip || !container) {
         return
       }
 
-      if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
-        tooltip.style.opacity = '0'
-        return
-      }
-
-      let year: number | null = null
-      if (typeof param.time === 'string') {
-        year = Number(param.time.slice(0, 4))
-      } else if (typeof param.time === 'number') {
-        year = new Date(param.time * 1000).getUTCFullYear()
-      } else {
-        const business = param.time as BusinessDay
-        year = business.year
-      }
-
-      if (!year) {
-        tooltip.style.opacity = '0'
-        return
-      }
-
       const detail = chartPointsRef.current.get(year)
       if (!detail) {
-        tooltip.style.opacity = '0'
+        hideTooltip()
         return
       }
 
@@ -247,20 +299,74 @@ function LifeKLine() {
       const { width, height } = container.getBoundingClientRect()
       const tooltipWidth = tooltip.offsetWidth
       const tooltipHeight = tooltip.offsetHeight
-      const left = Math.min(param.point.x + 16, width - tooltipWidth - 12)
-      const top = Math.min(param.point.y + 16, height - tooltipHeight - 12)
+      const left = Math.min(x + 16, width - tooltipWidth - 12)
+      const top = Math.min(y + 16, height - tooltipHeight - 12)
       tooltip.style.left = `${Math.max(left, 12)}px`
       tooltip.style.top = `${Math.max(top, 12)}px`
       tooltip.style.opacity = '1'
     }
 
+    const handleCrosshairMove = (param: MouseEventParams) => {
+      if (isTouchMode) {
+        return
+      }
+
+      const tooltip = tooltipRef.current
+      if (!tooltip) {
+        return
+      }
+
+      if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
+        hideTooltip()
+        return
+      }
+
+      const year = yearFromTime(param.time)
+      if (!year) {
+        hideTooltip()
+        return
+      }
+
+      showTooltipAt(year, param.point.x, param.point.y)
+    }
+
+    const handleChartClick = (param: MouseEventParams) => {
+      if (!isTouchMode) {
+        return
+      }
+
+      if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
+        pinnedYearRef.current = null
+        hideTooltip()
+        return
+      }
+
+      const year = yearFromTime(param.time)
+      if (!year) {
+        pinnedYearRef.current = null
+        hideTooltip()
+        return
+      }
+
+      if (pinnedYearRef.current === year) {
+        pinnedYearRef.current = null
+        hideTooltip()
+        return
+      }
+
+      pinnedYearRef.current = year
+      showTooltipAt(year, param.point.x, param.point.y)
+    }
+
     chart.subscribeCrosshairMove(handleCrosshairMove)
+    chart.subscribeClick(handleChartClick)
 
     return () => {
       chart.unsubscribeCrosshairMove(handleCrosshairMove)
+      chart.unsubscribeClick(handleChartClick)
       chart.remove()
     }
-  }, [currentPage])
+  }, [currentPage, isTouchMode])
 
   const handleGenderChange = (
     _event: MouseEvent<HTMLElement>,
@@ -554,7 +660,7 @@ function LifeKLine() {
             <div className="panel chart-panel">
               <div className="panel-header">
                 <span>人生K线</span>
-                <span className="panel-hint">鼠标悬停柱子查看批注</span>
+                <span className="panel-hint">{isTouchMode ? '点击柱子查看批注' : '鼠标悬停柱子查看批注'}</span>
               </div>
               <div className="chart-shell">
                 <div ref={chartContainerRef} className="chart-canvas" />
@@ -615,6 +721,7 @@ function LifeKLine() {
                 const text = analysis[card.key] as string | undefined
                 const score = analysis[card.scoreKey] as number | undefined
                 const isLoading = streamState === 'streaming' && !text
+                const insertToken = traitInsertToken[card.key]
                 const scoreColor = score !== undefined
                   ? score >= 8 ? 'excellent' : score >= 6 ? 'good' : score >= 4 ? 'average' : 'poor'
                   : 'none'
@@ -640,7 +747,12 @@ function LifeKLine() {
                           <span className="loading-dot" />
                         </div>
                       ) : text ? (
-                        text
+                        <div
+                          key={insertToken ? `${card.key}-${insertToken}` : card.key}
+                          className={`trait-body-content ${insertToken ? 'trait-body-insert' : ''}`}
+                        >
+                          {text}
+                        </div>
                       ) : (
                         '等待分析'
                       )}
