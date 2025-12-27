@@ -11,6 +11,10 @@ export type LifeKlineChartPoint = {
   reason: string
 }
 
+export type StreamState = 'idle' | 'loading' | 'streaming' | 'done' | 'error'
+
+export type PageView = 'input' | 'detail'
+
 export type DaYunInfo = {
   ganZhi: string
   startAge: number

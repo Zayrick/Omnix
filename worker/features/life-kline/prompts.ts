@@ -1,17 +1,4 @@
-type TimelineItem = {
-  age: number
-  year: number
-  daYun: string
-  ganZhi: string
-}
-
-type DaYunItem = {
-  ganZhi: string
-  startAge: number
-  endAge: number
-  startYear: number
-  endYear: number
-}
+import type { DaYunDetail, TimelineItem } from './types'
 
 type UserPromptParams = {
   name?: string
@@ -22,11 +9,11 @@ type UserPromptParams = {
   startAge: number
   direction: string
   daYunList: string[]
-  daYunDetails: DaYunItem[]
+  daYunDetails: DaYunDetail[]
   timeline: TimelineItem[]
 }
 
-export const SYSTEM_PROMPT = `你是一位严厉、客观、不留情面的八字命理大师，同时精通加密货币和股票市场周期与金融投机心理学。
+export const LIFE_KLINE_SYSTEM_PROMPT = `你是一位严厉、客观、不留情面的八字命理大师，同时精通加密货币和股票市场周期与金融投机心理学。
 
 你的任务是：根据已经排好的八字四柱和大运信息，生成命理分析和100年人生K线数据。
 
@@ -147,7 +134,7 @@ chartPoints:
 7. 不要用代码块包裹，直接输出纯 YAML
 `
 
-export function buildUserPrompt(params: UserPromptParams) {
+export function buildLifeKlinePrompt(params: UserPromptParams) {
   const {
     name,
     gender,
@@ -209,3 +196,4 @@ ${timelineLines}
 
 请严格按照系统指令输出 YAML 数据。`
 }
+

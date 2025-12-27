@@ -1,4 +1,4 @@
-import type { LifeKlineChartPoint, LifeKlineResult } from '../types/lifeKline'
+import type { LifeKlineChartPoint, LifeKlineResult } from '../model/types'
 
 type ParserCallbacks = {
   onResult?: (partial: Partial<LifeKlineResult>) => void
