@@ -25,7 +25,6 @@ export type DaYunInfo = {
 
 export type LifeKlineResult = {
   bazi: string[]
-  daYunList: DaYunInfo[]
   summary: string
   summaryScore: number
   personality: string

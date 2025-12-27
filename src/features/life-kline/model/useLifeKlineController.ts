@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import type { Dayjs } from 'dayjs'
-import { computeDaYunList } from './computeDaYun'
+import { computeBaziAndDaYun } from './computeDaYun'
 import { getStatusLabel } from './constants'
 import { streamLifeKlineAnalysis } from './streamLifeKline'
 import type { DaYunInfo, LifeKlineChartPoint, LifeKlineResult, PageView, StreamState } from './types'
@@ -26,7 +26,6 @@ export const useLifeKlineController = ({
   const [gender, setGender] = useState<'male' | 'female' | null>(null)
   const [analysis, setAnalysis] = useState<Partial<LifeKlineResult>>({
     bazi: [],
-    daYunList: [],
   })
   const [streamState, setStreamState] = useState<StreamState>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -53,7 +52,7 @@ export const useLifeKlineController = ({
     abortRef.current?.abort()
     setStreamState('idle')
     setErrorMessage(null)
-    setAnalysis({ bazi: [], daYunList: [] })
+    setAnalysis({ bazi: [] })
     setDaYunList([])
     onChartReset?.()
     setCurrentPage('input')
@@ -71,12 +70,13 @@ export const useLifeKlineController = ({
     abortRef.current = controller
 
     setStreamState('loading')
-    setAnalysis({ bazi: [], daYunList: [] })
+    setAnalysis({ bazi: [] })
     onChartReset?.()
 
     try {
-      const computed = computeDaYunList({ birthDate, birthTime, gender })
-      setDaYunList(computed)
+      const computed = computeBaziAndDaYun({ birthDate, birthTime, gender })
+      setAnalysis((prev) => ({ ...prev, bazi: computed.bazi }))
+      setDaYunList(computed.daYunList)
     } catch {
       setDaYunList([])
     }
