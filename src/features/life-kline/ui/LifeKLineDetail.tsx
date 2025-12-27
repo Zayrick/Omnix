@@ -15,8 +15,8 @@ type LifeKLineDetailProps = {
   statusLabel: string
   isTouchMode: boolean
   prefersDarkMode: boolean
-  chartContainerRef: RefObject<HTMLDivElement>
-  tooltipRef: RefObject<HTMLDivElement>
+  chartContainerRef: RefObject<HTMLDivElement | null>
+  tooltipRef: RefObject<HTMLDivElement | null>
   onRestart: () => void
 }
 

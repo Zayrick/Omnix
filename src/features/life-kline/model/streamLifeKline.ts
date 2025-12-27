@@ -1,10 +1,11 @@
 import { parse as parseYaml } from 'yaml'
-import { requestLifeKlineStream, type LifeKlineRequestPayload } from '../api/lifeKlineApi'
+import type { LifeKlineRequestDto } from '../../../../shared/dto/lifeKline'
+import { requestLifeKlineStream } from '../api/lifeKlineApi'
 import { createYamlStreamParser } from '../lib/yamlStreamParser'
 import type { LifeKlineChartPoint, LifeKlineResult } from './types'
 
 type StreamLifeKlineOptions = {
-  payload: LifeKlineRequestPayload
+  payload: LifeKlineRequestDto
   signal: AbortSignal
   onStreamStart?: () => void
   onPartial?: (partial: Partial<LifeKlineResult>) => void

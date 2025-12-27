@@ -1,11 +1,6 @@
-export type LifeKlineRequestPayload = {
-  name?: string
-  gender: 'male' | 'female'
-  birthDate: string
-  birthTime: string
-}
+import type { LifeKlineRequestDto } from '../../../../shared/dto/lifeKline'
 
-export const requestLifeKlineStream = (payload: LifeKlineRequestPayload, signal?: AbortSignal) =>
+export const requestLifeKlineStream = (payload: LifeKlineRequestDto, signal?: AbortSignal) =>
   fetch('/api/life-kline', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

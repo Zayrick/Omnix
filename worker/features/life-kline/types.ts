@@ -1,9 +1,6 @@
-export type LifeKlineRequest = {
-  name?: string
-  gender?: 'male' | 'female'
-  birthDate?: string
-  birthTime?: string
-}
+import type { LifeKlineRequestDto } from '../../../shared/dto/lifeKline'
+
+export type LifeKlineRequest = LifeKlineRequestDto
 
 export type TimelineItem = {
   age: number

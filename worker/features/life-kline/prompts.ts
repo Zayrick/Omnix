@@ -1,6 +1,6 @@
 import type { DaYunDetail, TimelineItem } from './types'
 
-type UserPromptParams = {
+export type LifeKlinePromptParams = {
   name?: string
   gender: string
   birthDate: string
@@ -134,7 +134,7 @@ chartPoints:
 7. 不要用代码块包裹，直接输出纯 YAML
 `
 
-export function buildLifeKlinePrompt(params: UserPromptParams) {
+export function buildLifeKlinePrompt(params: LifeKlinePromptParams) {
   const {
     name,
     gender,

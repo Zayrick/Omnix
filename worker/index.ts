@@ -1,19 +1,23 @@
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { handleLifeKline } from './features/life-kline/handler'
 import { emptyResponse } from './shared/http/cors'
 import type { Env } from './shared/types'
 
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url)
+const app = new Hono<{ Bindings: Env }>()
 
-    if (request.method === 'OPTIONS') {
-      return emptyResponse()
-    }
+app.use(
+  '*',
+  cors({
+    origin: '*',
+    allowMethods: ['POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  })
+)
 
-    if (url.pathname === '/api/life-kline' && request.method === 'POST') {
-      return handleLifeKline(request, env)
-    }
+app.options('*', () => emptyResponse())
+app.post('/api/life-kline', (c) => handleLifeKline(c.req.raw, c.env))
 
-    return new Response(null, { status: 404 })
-  },
-} satisfies ExportedHandler<Env>
+app.notFound((c) => c.text('', 404))
+
+export default app
