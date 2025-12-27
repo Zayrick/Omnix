@@ -68,8 +68,8 @@ export const validateLifeKlineRequest = (payload: LifeKlineRequestDto): Validati
     if (!Number.isFinite(targetYear)) {
       return { ok: false, status: 400, error: '缺少 targetYear' }
     }
-    if (typeof targetMonth !== 'number' || !Number.isFinite(targetMonth) || targetMonth < 1 || targetMonth > 12) {
-      return { ok: false, status: 400, error: 'targetMonth 必须是 1-12 的数字' }
+    if (typeof targetMonth !== 'number' || !Number.isFinite(targetMonth) || targetMonth < 1 || targetMonth > 13) {
+      return { ok: false, status: 400, error: 'targetMonth 必须是 1-13 的数字' }
     }
     if (!payload.selectedYearPoint) {
       return { ok: false, status: 400, error: '缺少 selectedYearPoint' }
@@ -149,8 +149,13 @@ const getJieQiYmd = (solarYear: number, jieQiName: string) => {
 }
 
 const getMonthRangeByIndex = (targetYear: number, monthIndex: number) => {
-  if (!Number.isFinite(monthIndex) || monthIndex < 1 || monthIndex > 12) {
+  if (!Number.isFinite(monthIndex) || monthIndex < 1 || monthIndex > 13) {
     throw new Error(`Invalid monthIndex: ${monthIndex}`)
+  }
+
+  // 追加“第13月”= 次年的第一节气月（立春起），用于在春节年界下补齐跨度。
+  if (monthIndex === 13) {
+    return getMonthRangeByIndex(targetYear + 1, 1)
   }
   const startsInTargetYear = ['立春', '惊蛰', '清明', '立夏', '芒种', '小暑', '立秋', '白露', '寒露', '立冬', '大雪']
 
@@ -306,8 +311,8 @@ export const buildLifeKlineMonthPromptParams = (
     eightChar.getTime(),
   ]
 
-  // 以“节”(立春起)作为月界，生成 12 个节气月（每月是一个公历范围，而不是公历月份）
-  const months = Array.from({ length: 12 }, (_, index) => {
+  // 以“节”(立春起)作为月界，生成 12 个节气月 + 1 个“次年第一节气月”（用于在春节年界下补齐跨度）
+  const months = Array.from({ length: 13 }, (_, index) => {
     const monthIndex = index + 1
     const range = getMonthRangeByIndex(targetYear, monthIndex)
     const { y, m, d } = parseYmd(range.startYmd)

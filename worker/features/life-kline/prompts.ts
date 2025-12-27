@@ -215,7 +215,7 @@ chartPoints:
 
 export const LIFE_KLINE_MONTH_SYSTEM_PROMPT = `你是一位严厉、客观、不留情面的命理分析师，同时精通市场周期。
 
-你的任务是：基于【已给定】的八字信息、上层（年K线）点，以及【已计算】的每月干支列表，生成“某一年的月K线”（12根）。
+你的任务是：基于【已给定】的八字信息、上层（年K线）点，以及【已计算】的每月干支列表，生成“某一年的月K线”（13根）。
 
 核心规则:
 1. 严格约束：每个月的 ganZhi 必须与用户提供的 months 列表完全一致，禁止自行推算或改写。
@@ -242,9 +242,9 @@ chartPoints:
     reason: "月度详批文字，80-120字"
 
 字段约束 - 必须严格遵守:
-- chartPoints: 数组，恰好12个元素，age从1到12
+- chartPoints: 数组，恰好13个元素，age从1到13
 - year: 整数，等于目标年份
-- month: 整数，1-12
+- month: 整数，1-13
 - monthInChinese: 字符串（允许为空字符串，但必须存在且用双引号）
 - daYun: 字符串，必须等于 selectedYearPoint.daYun
 - ganZhi: 字符串，必须与 months 列表对应 month 的 ganZhi 完全一致
@@ -382,7 +382,7 @@ low: ${selectedYearPoint.low}
 score: ${selectedYearPoint.score}
 reason: "${selectedYearPoint.reason}"`
 
-  return `你将为【${targetYear}年】生成月K线（12根）。月是年的补充，因此你必须参考并延续该年的年K线点。
+  return `你将为【${targetYear}年】生成月K线（13根）。月是年的补充，因此你必须参考并延续该年的年K线点。
 
 【基本信息】
 姓名：${name ?? '未提供'}
@@ -408,7 +408,7 @@ months:
 ${monthsLines}
 
 【任务要求】
-1. 生成该年 12 个月的 K 线数据（chartPoints），age=1..12。
+1. 生成该年 13 个月的 K 线数据（chartPoints），age=1..13（第13月表示“次年第一节气月”，用于在春节年界下补齐跨度）。
 2. 每个月的 ganZhi 必须与 months 列表中对应 month 的 ganZhi 完全一致。
 3. 每个月的 daYun 必须等于 selectedYearPoint.daYun。
 4. 每个月 reason 给出 80-120 字的月度详批。
@@ -461,7 +461,7 @@ low: ${selectedMonthPoint.low}
 score: ${selectedMonthPoint.score}
 reason: "${selectedMonthPoint.reason}"`
 
-  return `你将为【${targetYear}-${String(targetMonth).padStart(2, '0')}】生成日K线。日是月的补充，因此你必须参考并延续该月的月K线点，同时也要参考该年的年K线点。
+  return `你将为【${targetYear}年·第${targetMonth}节气月】生成日K线。日是月的补充，因此你必须参考并延续该月的月K线点，同时也要参考该年的年K线点。
 
 【基本信息】
 姓名：${name ?? '未提供'}
@@ -474,7 +474,7 @@ reason: "${selectedMonthPoint.reason}"`
 日柱：${bazi[2]}
 时柱：${bazi[3]}
 
-【目标年月】
+【目标年月】（注意：targetMonth 是节气月序号，范围 1-13；第13月表示“次年第一节气月”）
 targetYear: ${targetYear}
 targetMonth: ${targetMonth}
 targetYearGanZhi: "${targetYearGanZhi}"

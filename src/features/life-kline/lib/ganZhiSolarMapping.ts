@@ -1,4 +1,4 @@
-import { Solar } from 'lunar-typescript'
+import { Lunar, Solar } from 'lunar-typescript'
 
 const pad2 = (value: number) => String(value).padStart(2, '0')
 
@@ -42,39 +42,24 @@ const getJieQiYmd = (solarYear: number, jieQiName: string): SolarYmd => {
   return solar.toYmd()
 }
 
-const getYearGanZhiAtNoon = (y: number, m: number, d: number) => {
-  const solar = Solar.fromYmdHms(y, m, d, 12, 0, 0)
-  return solar.getLunar().getEightChar().getYear()
-}
-
-const findYearPillarStartYmd = (year: number, ganZhi: string) => {
-  // 立春通常在 2/3~2/5，扫描窗口放宽避免极端情况。
-  for (let day = 1; day <= 15; day += 1) {
-    const current = getYearGanZhiAtNoon(year, 2, day)
-    if (current === ganZhi) {
-      return toYmd(year, 2, day)
-    }
-  }
-  // 极端情况下未命中（理论上不应发生），降级为 2/4
-  return toYmd(year, 2, 4)
+const getChunJieYmd = (lunarYear: number): SolarYmd => {
+  // 春节 = 农历正月初一
+  // 注意：这里的 lunarYear 是“农历年”编号（与大多数公历年同名，但春节在 1-2 月）。
+  return Lunar.fromYmd(lunarYear, 1, 1).getSolar().toYmd()
 }
 
 /**
- * 计算“年柱干支”的公历时间段（按节气/立春切换的八字口径）。
+ * 计算“年K线显示用”的公历时间段（按春节/农历正月初一切换）。
  *
  * 说明：
- * - 年柱不是简单的 1/1~12/31；通常在 2 月初（立春附近）切换。
- * - 这里以“找到该年柱干支首次出现的日期”为 start；end 为下一年 start 的前一天。
+ * - 用户侧“年份”以春节交替（而非立春）。春节通常落在 1-2 月，且会发生在某个节气月的中间。
+ * - 这里只用于【年级别】的显示（图表 time 轴与 tooltip 年范围），不影响月/日采用节气月的口径。
+ * - 保持 targetGanZhi 参数仅为兼容既有调用；春节边界与该参数无关。
  */
-export const getGanZhiYearSolarRange = (targetYear: number, targetGanZhi: string): SolarRange => {
-  const startYmd = findYearPillarStartYmd(targetYear, targetGanZhi)
-
-  const nextYearGanZhi = getYearGanZhiAtNoon(targetYear + 1, 6, 15)
-  const nextStartYmd = findYearPillarStartYmd(targetYear + 1, nextYearGanZhi)
-
-  const endYmd = addDays(nextStartYmd, -1)
-
-  return { startYmd, endYmd }
+export const getGanZhiYearSolarRange = (targetYear: number, _targetGanZhi: string): SolarRange => {
+  const startYmd = getChunJieYmd(targetYear)
+  const nextStartYmd = getChunJieYmd(targetYear + 1)
+  return { startYmd, endYmd: addDays(nextStartYmd, -1) }
 }
 
 /**
@@ -87,8 +72,13 @@ export const getGanZhiYearSolarRange = (targetYear: number, targetGanZhi: string
  * - 12: 小寒~次年立春前一日
  */
 export const getGanZhiMonthSolarRange = (targetYear: number, monthIndex: number): SolarRange => {
-  if (!Number.isFinite(monthIndex) || monthIndex < 1 || monthIndex > 12) {
+  if (!Number.isFinite(monthIndex) || monthIndex < 1 || monthIndex > 13) {
     throw new Error(`Invalid monthIndex: ${monthIndex}`)
+  }
+
+  // 追加“第13月”表示“次年第一节气月（立春起）”，用于在春节年界的口径下补齐跨度。
+  if (monthIndex === 13) {
+    return getGanZhiMonthSolarRange(targetYear + 1, 1)
   }
 
   // 12 个“节”(Jie) 作为月界（从立春开始）

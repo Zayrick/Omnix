@@ -25,28 +25,30 @@ const addDaysUtc = (ymd: string, days: number) => {
 }
 
 describe('getGanZhiYearSolarRange', () => {
-  it('should return a LiChun-based range where year pillar is stable within boundaries', () => {
+  it('should return a ChunJie-based range where start is lunar 1/1 and end+1 is next lunar 1/1', () => {
     const targetYear = 2001
-    const targetGanZhi = Solar.fromYmdHms(targetYear, 6, 15, 12, 0, 0).getLunar().getEightChar().getYear()
+    const range = getGanZhiYearSolarRange(targetYear, 'IGNORED')
 
-    const range = getGanZhiYearSolarRange(targetYear, targetGanZhi)
+    // 春节通常在 1-2 月，避免硬编码具体哪一天（受历法实现影响）
+    expect(
+      range.startYmd.startsWith(`${targetYear}-01-`) || range.startYmd.startsWith(`${targetYear}-02-`)
+    ).toBe(true)
 
-    // start 通常在 2 月初，避免硬编码具体哪一天（受时区/历法实现影响）
-    expect(range.startYmd.startsWith(`${targetYear}-02-`)).toBe(true)
-
-    // start 当天中午的年柱应等于 targetGanZhi
+    // start 必须是农历正月初一（春节）
     {
       const { y, m, d } = parseYmd(range.startYmd)
-      const ganZhiAtStart = Solar.fromYmdHms(y, m, d, 12, 0, 0).getLunar().getEightChar().getYear()
-      expect(ganZhiAtStart).toBe(targetGanZhi)
+      const lunarAtStart = Solar.fromYmd(y, m, d).getLunar()
+      expect(lunarAtStart.getMonth()).toBe(1)
+      expect(lunarAtStart.getDay()).toBe(1)
     }
 
-    // end 的下一天（nextStart）年柱应已经切换到下一年柱
+    // end 的下一天必须也是农历正月初一（下一年春节）
     {
       const nextDay = addDaysUtc(range.endYmd, 1)
       const { y, m, d } = parseYmd(nextDay)
-      const ganZhiAtNext = Solar.fromYmdHms(y, m, d, 12, 0, 0).getLunar().getEightChar().getYear()
-      expect(ganZhiAtNext).not.toBe(targetGanZhi)
+      const lunarAtNext = Solar.fromYmd(y, m, d).getLunar()
+      expect(lunarAtNext.getMonth()).toBe(1)
+      expect(lunarAtNext.getDay()).toBe(1)
     }
   })
 })
@@ -61,6 +63,14 @@ describe('getGanZhiMonthSolarRange', () => {
     expect(m12.startYmd.startsWith(`${targetYear + 1}-01-`)).toBe(true)
     expect(m12.endYmd.startsWith(`${targetYear + 1}-02-`)).toBe(true)
   })
+
+  it('month 13 should map to next year month 1 range', () => {
+    const targetYear = 2001
+    const m13 = getGanZhiMonthSolarRange(targetYear, 13)
+    const nextM1 = getGanZhiMonthSolarRange(targetYear + 1, 1)
+    expect(m13.startYmd).toBe(nextM1.startYmd)
+    expect(m13.endYmd).toBe(nextM1.endYmd)
+  })
 })
 
 describe('getGanZhiDaySolarYmd', () => {
@@ -74,5 +84,13 @@ describe('getGanZhiDaySolarYmd', () => {
 
     const d3 = getGanZhiDaySolarYmd(targetYear, monthIndex, 3)
     expect(d3 >= range.startYmd && d3 <= range.endYmd).toBe(true)
+  })
+
+  it('should support month 13 day mapping', () => {
+    const targetYear = 2001
+    const monthIndex = 13
+    const range = getGanZhiMonthSolarRange(targetYear, monthIndex)
+    const d1 = getGanZhiDaySolarYmd(targetYear, monthIndex, 1)
+    expect(d1).toBe(range.startYmd)
   })
 })
