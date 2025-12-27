@@ -25,6 +25,13 @@ export function LifeKLinePage() {
   })
 
   useEffect(() => {
+    chart.setOnPointDoubleClick(controller.handlePointDoubleClick)
+    return () => {
+      chart.setOnPointDoubleClick(null)
+    }
+  }, [chart.setOnPointDoubleClick, controller.handlePointDoubleClick])
+
+  useEffect(() => {
     const root = document.documentElement
     const body = document.body
 
@@ -118,6 +125,11 @@ export function LifeKLinePage() {
             prefersDarkMode={prefersDarkMode}
             chartContainerRef={chart.chartContainerRef}
             tooltipRef={chart.tooltipRef}
+            klineView={controller.klineView}
+            selectedYearPoint={controller.selectedYearPoint}
+            selectedMonthPoint={controller.selectedMonthPoint}
+            canGoBack={controller.canGoBack}
+            onBack={controller.handleBack}
             onRestart={controller.handleRestart}
           />
         )}

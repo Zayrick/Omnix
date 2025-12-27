@@ -120,6 +120,20 @@ body.life-kline-active {
   font-size: 1rem;
 }
 
+.life-kline-breadcrumb {
+  margin-top: 8px;
+  color: rgba(231, 244, 242, 0.78);
+  font-size: 0.92rem;
+}
+
+.life-kline-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .life-kline-status {
   padding: 10px 18px;
   border-radius: 999px;
@@ -144,6 +158,12 @@ body.life-kline-active {
 
 .life-kline-status-action:active {
   transform: translateY(0);
+}
+
+.life-kline-status-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(231, 244, 242, 0.92);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .life-kline-status-loading,

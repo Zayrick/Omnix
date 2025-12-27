@@ -3,6 +3,7 @@ import type { Dayjs } from 'dayjs'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { traitCards } from '../model/constants'
 import type { DaYunInfo, LifeKlineResult, StreamState } from '../model/types'
+import type { LifeKlineMonthPointDto, LifeKlineYearPointDto } from '../../../../shared/dto/lifeKline'
 
 type LifeKLineDetailProps = {
   name: string
@@ -17,6 +18,11 @@ type LifeKLineDetailProps = {
   prefersDarkMode: boolean
   chartContainerRef: RefObject<HTMLDivElement | null>
   tooltipRef: RefObject<HTMLDivElement | null>
+  klineView: 'year' | 'month' | 'day'
+  selectedYearPoint: LifeKlineYearPointDto | null
+  selectedMonthPoint: LifeKlineMonthPointDto | null
+  canGoBack: boolean
+  onBack: () => void
   onRestart: () => void
 }
 
@@ -33,6 +39,11 @@ export function LifeKLineDetail({
   prefersDarkMode,
   chartContainerRef,
   tooltipRef,
+  klineView,
+  selectedYearPoint,
+  selectedMonthPoint,
+  canGoBack,
+  onBack,
   onRestart,
 }: LifeKLineDetailProps) {
   const [traitInsertToken, setTraitInsertToken] = useState<Record<string, number>>({})
@@ -89,24 +100,45 @@ export function LifeKLineDetail({
             以干支与大运为底层逻辑，刻画人生涨跌脉冲
           </Typography>
         </div>
-        {streamState === 'done' ? (
-          <button
-            type="button"
-            className={`life-kline-status life-kline-status-${streamState} life-kline-status-action`}
-            onClick={onRestart}
-          >
-            {statusLabel}
-          </button>
-        ) : (
-          <div className={`life-kline-status life-kline-status-${streamState}`}>{statusLabel}</div>
-        )}
+        <div className="life-kline-actions">
+          {canGoBack && streamState === 'done' && (
+            <button
+              type="button"
+              className="life-kline-status life-kline-status-action life-kline-status-secondary"
+              onClick={onBack}
+            >
+              返回上一级
+            </button>
+          )}
+          {streamState === 'done' ? (
+            <button
+              type="button"
+              className={`life-kline-status life-kline-status-${streamState} life-kline-status-action`}
+              onClick={onRestart}
+            >
+              {statusLabel}
+            </button>
+          ) : (
+            <div className={`life-kline-status life-kline-status-${streamState}`}>{statusLabel}</div>
+          )}
+        </div>
       </header>
 
       <section className="life-kline-board">
         <div className="panel chart-panel">
           <div className="panel-header">
-            <span>人生K线</span>
-            <span className="panel-hint">{isTouchMode ? '点击柱子查看批注' : '鼠标悬停柱子查看批注'}</span>
+            <span>
+              {klineView === 'year'
+                ? '人生K线'
+                : klineView === 'month' && selectedYearPoint
+                  ? `月度K线 - ${selectedYearPoint.ganZhi}年（${selectedYearPoint.year}年）`
+                  : klineView === 'day' && selectedYearPoint && selectedMonthPoint
+                    ? `日度K线 - ${selectedMonthPoint.ganZhi}月·${selectedYearPoint.ganZhi}年（${selectedYearPoint.year}年 ${selectedMonthPoint.month}月）`
+                    : '人生K线'}
+            </span>
+            <span className="panel-hint">
+              {isTouchMode ? '点击柱子查看批注；双击下钻' : '鼠标悬停柱子查看批注；双击下钻'}
+            </span>
           </div>
           <div className="chart-shell">
             <div ref={chartContainerRef} className="chart-canvas" />

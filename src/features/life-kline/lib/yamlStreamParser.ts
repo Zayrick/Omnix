@@ -63,9 +63,22 @@ export const createYamlStreamParser = (callbacks: ParserCallbacks = {}) => {
       currentPoint = null
       return
     }
+    const inferredLevel: LifeKlineChartPoint['level'] =
+      currentPoint.level === 'year' || currentPoint.level === 'month' || currentPoint.level === 'day'
+        ? currentPoint.level
+        : Number.isFinite(Number(currentPoint.day))
+          ? 'day'
+          : Number.isFinite(Number(currentPoint.month))
+            ? 'month'
+            : 'year'
+
     const normalized: LifeKlineChartPoint = {
       age,
       year: Number(currentPoint.year),
+      level: inferredLevel,
+      month: Number.isFinite(Number(currentPoint.month)) ? Number(currentPoint.month) : undefined,
+      day: Number.isFinite(Number(currentPoint.day)) ? Number(currentPoint.day) : undefined,
+      monthInChinese: String(currentPoint.monthInChinese ?? ''),
       daYun: String(currentPoint.daYun ?? ''),
       ganZhi: String(currentPoint.ganZhi ?? ''),
       open: Number(currentPoint.open),

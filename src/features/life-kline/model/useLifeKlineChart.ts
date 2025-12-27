@@ -36,14 +36,55 @@ export const useLifeKlineChart = ({ currentPage, isTouchMode }: UseLifeKlineChar
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const chartPointsRef = useRef<Map<number, LifeKlineChartPoint>>(new Map())
+  const onPointDoubleClickRef = useRef<((point: LifeKlineChartPoint) => void) | null>(null)
+
+  const pad2 = (value: number) => String(value).padStart(2, '0')
+
+  const getPointLevel = (point: LifeKlineChartPoint) =>
+    point.level ?? (point.day ? 'day' : point.month ? 'month' : 'year')
+
+  const getPointKey = (point: LifeKlineChartPoint): number => {
+    const level = getPointLevel(point)
+    const m = level === 'year' ? 1 : (point.month ?? 1)
+    const d = level === 'day' ? (point.day ?? 1) : 1
+    return point.year * 10000 + m * 100 + d
+  }
+
+  const getKeyFromTime = (time: Time): number | null => {
+    if (typeof time === 'string') {
+      const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(time)
+      if (!match) {
+        return null
+      }
+      const year = Number(match[1])
+      const month = Number(match[2])
+      const day = Number(match[3])
+      if (![year, month, day].every(Number.isFinite)) {
+        return null
+      }
+      return year * 10000 + month * 100 + day
+    }
+    if (typeof time === 'number') {
+      const dt = new Date(time * 1000)
+      const year = dt.getUTCFullYear()
+      const month = dt.getUTCMonth() + 1
+      const day = dt.getUTCDate()
+      return year * 10000 + month * 100 + day
+    }
+    const business = time as BusinessDay
+    if (!Number.isFinite(business.year) || !Number.isFinite(business.month) || !Number.isFinite(business.day)) {
+      return null
+    }
+    return business.year * 10000 + business.month * 100 + business.day
+  }
 
   const addPoint = useCallback((point: LifeKlineChartPoint) => {
-    chartPointsRef.current.set(point.year, point)
+    chartPointsRef.current.set(getPointKey(point), point)
     seriesRef.current?.update(toCandle(point))
   }, [])
 
   const replacePoints = useCallback((points: LifeKlineChartPoint[]) => {
-    chartPointsRef.current = new Map(points.map((point) => [point.year, point]))
+    chartPointsRef.current = new Map(points.map((point) => [getPointKey(point), point]))
     if (seriesRef.current) {
       seriesRef.current.setData(points.map(toCandle))
       chartRef.current?.timeScale().fitContent()
@@ -53,6 +94,10 @@ export const useLifeKlineChart = ({ currentPage, isTouchMode }: UseLifeKlineChar
   const resetPoints = useCallback(() => {
     chartPointsRef.current.clear()
     seriesRef.current?.setData([])
+  }, [])
+
+  const setOnPointDoubleClick = useCallback((handler: ((point: LifeKlineChartPoint) => void) | null) => {
+    onPointDoubleClickRef.current = handler
   }, [])
 
   useEffect(() => {
@@ -98,14 +143,15 @@ export const useLifeKlineChart = ({ currentPage, isTouchMode }: UseLifeKlineChar
     seriesRef.current = series
 
     const existingPoints = Array.from(chartPointsRef.current.values()).sort(
-      (a, b) => a.year - b.year
+      (a, b) => getPointKey(a) - getPointKey(b)
     )
     if (existingPoints.length) {
       series.setData(existingPoints.map(toCandle))
       chart.timeScale().fitContent()
     }
 
-    const pinnedYearRef = { current: null as number | null }
+    const pinnedKeyRef = { current: null as number | null }
+    const lastClickRef = { key: null as number | null, ts: 0 }
 
     const hideTooltip = () => {
       const tooltip = tooltipRef.current
@@ -115,35 +161,32 @@ export const useLifeKlineChart = ({ currentPage, isTouchMode }: UseLifeKlineChar
       tooltip.style.opacity = '0'
     }
 
-    const yearFromTime = (time: Time): number | null => {
-      if (typeof time === 'string') {
-        const y = Number(time.slice(0, 4))
-        return Number.isFinite(y) ? y : null
-      }
-      if (typeof time === 'number') {
-        const y = new Date(time * 1000).getUTCFullYear()
-        return Number.isFinite(y) ? y : null
-      }
-      const business = time as BusinessDay
-      return Number.isFinite(business.year) ? business.year : null
-    }
-
-    const showTooltipAt = (year: number, x: number, y: number) => {
+    const showTooltipAt = (key: number, x: number, y: number) => {
       const tooltip = tooltipRef.current
       const container = chartContainerRef.current
       if (!tooltip || !container) {
         return
       }
 
-      const detail = chartPointsRef.current.get(year)
+      const detail = chartPointsRef.current.get(key)
       if (!detail) {
         hideTooltip()
         return
       }
 
+      const level = getPointLevel(detail)
+      const title =
+        level === 'year'
+          ? `${detail.year}年 · ${detail.age}岁`
+          : level === 'month'
+            ? `${detail.year}年 · ${detail.monthInChinese || `${detail.month ?? ''}月`}`
+            : `${detail.year}-${pad2(detail.month ?? 1)}-${pad2(detail.day ?? 1)}`
+
+      const sub = [detail.daYun, detail.ganZhi].filter(Boolean).join(' · ')
+
       tooltip.innerHTML = `
-        <div class="tooltip-title">${detail.year}年 · ${detail.age}岁</div>
-        <div class="tooltip-sub">${escapeHtml(detail.daYun)} · ${escapeHtml(detail.ganZhi)}</div>
+        <div class="tooltip-title">${escapeHtml(title)}</div>
+        <div class="tooltip-sub">${escapeHtml(sub)}</div>
         <div class="tooltip-score">评分 ${detail.score}</div>
         <div class="tooltip-reason">${escapeHtml(detail.reason)}</div>
       `
@@ -173,41 +216,55 @@ export const useLifeKlineChart = ({ currentPage, isTouchMode }: UseLifeKlineChar
         return
       }
 
-      const year = yearFromTime(param.time)
-      if (!year) {
+      const key = getKeyFromTime(param.time)
+      if (!key) {
         hideTooltip()
         return
       }
 
-      showTooltipAt(year, param.point.x, param.point.y)
+      showTooltipAt(key, param.point.x, param.point.y)
     }
 
     const handleChartClick = (param: MouseEventParams) => {
+      if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
+        pinnedKeyRef.current = null
+        hideTooltip()
+        return
+      }
+
+      const key = getKeyFromTime(param.time)
+      if (!key) {
+        pinnedKeyRef.current = null
+        hideTooltip()
+        return
+      }
+
+      // 双击识别（桌面双击、移动端双击/双点按均可）
+      const now = Date.now()
+      const isDouble = lastClickRef.key === key && now - lastClickRef.ts < 350
+      lastClickRef.key = key
+      lastClickRef.ts = now
+      if (isDouble) {
+        const point = chartPointsRef.current.get(key)
+        if (point) {
+          onPointDoubleClickRef.current?.(point)
+        }
+        return
+      }
+
+      // 触摸模式：单击/点按用于固定 tooltip
       if (!isTouchMode) {
         return
       }
 
-      if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
-        pinnedYearRef.current = null
+      if (pinnedKeyRef.current === key) {
+        pinnedKeyRef.current = null
         hideTooltip()
         return
       }
 
-      const year = yearFromTime(param.time)
-      if (!year) {
-        pinnedYearRef.current = null
-        hideTooltip()
-        return
-      }
-
-      if (pinnedYearRef.current === year) {
-        pinnedYearRef.current = null
-        hideTooltip()
-        return
-      }
-
-      pinnedYearRef.current = year
-      showTooltipAt(year, param.point.x, param.point.y)
+      pinnedKeyRef.current = key
+      showTooltipAt(key, param.point.x, param.point.y)
     }
 
     chart.subscribeCrosshairMove(handleCrosshairMove)
@@ -228,5 +285,6 @@ export const useLifeKlineChart = ({ currentPage, isTouchMode }: UseLifeKlineChar
     addPoint,
     replacePoints,
     resetPoints,
+    setOnPointDoubleClick,
   }
 }

@@ -1,6 +1,13 @@
-import type { LifeKlineRequestDto } from '../../../shared/dto/lifeKline'
+import type {
+  LifeKlineMonthPointDto,
+  LifeKlineRequestDto,
+  LifeKlineYearPointDto,
+} from '../../../shared/dto/lifeKline'
 
 export type LifeKlineRequest = LifeKlineRequestDto
+
+export type SelectedYearPoint = LifeKlineYearPointDto
+export type SelectedMonthPoint = LifeKlineMonthPointDto
 
 export type TimelineItem = {
   age: number
