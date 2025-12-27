@@ -11,6 +11,13 @@ import {
   type Time,
 } from 'lightweight-charts'
 import { toCandle } from './chart'
+import {
+  formatSolarRangeZh,
+  formatSolarYmdZh,
+  getGanZhiDaySolarYmd,
+  getGanZhiMonthSolarRange,
+  getGanZhiYearSolarRange,
+} from '../lib/ganZhiSolarMapping'
 import type { LifeKlineChartPoint, PageView } from './types'
 
 type UseLifeKlineChartOptions = {
@@ -38,17 +45,25 @@ export const useLifeKlineChart = ({ currentPage, isTouchMode }: UseLifeKlineChar
   const chartPointsRef = useRef<Map<number, LifeKlineChartPoint>>(new Map())
   const onPointDoubleClickRef = useRef<((point: LifeKlineChartPoint) => void) | null>(null)
 
-  const pad2 = (value: number) => String(value).padStart(2, '0')
+  const getPointLevel = useCallback(
+    (point: LifeKlineChartPoint) => point.level ?? (point.day ? 'day' : point.month ? 'month' : 'year'),
+    []
+  )
 
-  const getPointLevel = (point: LifeKlineChartPoint) =>
-    point.level ?? (point.day ? 'day' : point.month ? 'month' : 'year')
-
-  const getPointKey = (point: LifeKlineChartPoint): number => {
-    const level = getPointLevel(point)
-    const m = level === 'year' ? 1 : (point.month ?? 1)
-    const d = level === 'day' ? (point.day ?? 1) : 1
-    return point.year * 10000 + m * 100 + d
-  }
+  const getPointKey = useCallback(
+    (point: LifeKlineChartPoint): number => {
+      const level = getPointLevel(point)
+      const ymd =
+        level === 'year'
+          ? getGanZhiYearSolarRange(point.year, point.ganZhi).startYmd
+          : level === 'month'
+            ? getGanZhiMonthSolarRange(point.year, point.month ?? 1).startYmd
+            : getGanZhiDaySolarYmd(point.year, point.month ?? 1, point.day ?? 1)
+      const [y, m, d] = ymd.split('-').map(Number)
+      return y * 10000 + m * 100 + d
+    },
+    [getPointLevel]
+  )
 
   const getKeyFromTime = (time: Time): number | null => {
     if (typeof time === 'string') {
@@ -78,18 +93,24 @@ export const useLifeKlineChart = ({ currentPage, isTouchMode }: UseLifeKlineChar
     return business.year * 10000 + business.month * 100 + business.day
   }
 
-  const addPoint = useCallback((point: LifeKlineChartPoint) => {
-    chartPointsRef.current.set(getPointKey(point), point)
-    seriesRef.current?.update(toCandle(point))
-  }, [])
+  const addPoint = useCallback(
+    (point: LifeKlineChartPoint) => {
+      chartPointsRef.current.set(getPointKey(point), point)
+      seriesRef.current?.update(toCandle(point))
+    },
+    [getPointKey]
+  )
 
-  const replacePoints = useCallback((points: LifeKlineChartPoint[]) => {
-    chartPointsRef.current = new Map(points.map((point) => [getPointKey(point), point]))
-    if (seriesRef.current) {
-      seriesRef.current.setData(points.map(toCandle))
-      chartRef.current?.timeScale().fitContent()
-    }
-  }, [])
+  const replacePoints = useCallback(
+    (points: LifeKlineChartPoint[]) => {
+      chartPointsRef.current = new Map(points.map((point) => [getPointKey(point), point]))
+      if (seriesRef.current) {
+        seriesRef.current.setData(points.map(toCandle))
+        chartRef.current?.timeScale().fitContent()
+      }
+    },
+    [getPointKey]
+  )
 
   const resetPoints = useCallback(() => {
     chartPointsRef.current.clear()
@@ -175,18 +196,30 @@ export const useLifeKlineChart = ({ currentPage, isTouchMode }: UseLifeKlineChar
       }
 
       const level = getPointLevel(detail)
+      const monthIndex = detail.month ?? 1
+      const dayIndex = detail.day ?? 1
       const title =
         level === 'year'
-          ? `${detail.year}年 · ${detail.age}岁`
+          ? `${detail.ganZhi}年 · ${detail.age}岁`
           : level === 'month'
-            ? `${detail.year}年 · ${detail.monthInChinese || `${detail.month ?? ''}月`}`
-            : `${detail.year}-${pad2(detail.month ?? 1)}-${pad2(detail.day ?? 1)}`
+            ? `${detail.ganZhi}月`
+            : `${detail.ganZhi}日`
 
-      const sub = [detail.daYun, detail.ganZhi].filter(Boolean).join(' · ')
+      const timeText =
+        level === 'year'
+          ? formatSolarRangeZh(getGanZhiYearSolarRange(detail.year, detail.ganZhi))
+          : level === 'month'
+            ? formatSolarRangeZh(getGanZhiMonthSolarRange(detail.year, monthIndex))
+            : formatSolarYmdZh(getGanZhiDaySolarYmd(detail.year, monthIndex, dayIndex))
+
+      const dayunText = detail.daYun || ''
 
       tooltip.innerHTML = `
-        <div class="tooltip-title">${escapeHtml(title)}</div>
-        <div class="tooltip-sub">${escapeHtml(sub)}</div>
+        <div class="tooltip-header">
+          <div class="tooltip-title">${escapeHtml(title)}</div>
+          ${dayunText ? `<div class="tooltip-dayun">${escapeHtml(dayunText)}</div>` : ''}
+        </div>
+        <div class="tooltip-time">${escapeHtml(timeText)}</div>
         <div class="tooltip-score">评分 ${detail.score}</div>
         <div class="tooltip-reason">${escapeHtml(detail.reason)}</div>
       `
@@ -277,7 +310,7 @@ export const useLifeKlineChart = ({ currentPage, isTouchMode }: UseLifeKlineChar
       chartRef.current = null
       seriesRef.current = null
     }
-  }, [currentPage, isTouchMode])
+  }, [currentPage, isTouchMode, getPointKey, getPointLevel])
 
   return {
     chartContainerRef,

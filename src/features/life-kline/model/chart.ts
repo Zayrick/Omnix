@@ -1,20 +1,21 @@
 import type { CandlestickData, Time } from 'lightweight-charts'
 import type { LifeKlineChartPoint } from './types'
 
-const pad2 = (value: number) => String(value).padStart(2, '0')
+import {
+  getGanZhiDaySolarYmd,
+  getGanZhiMonthSolarRange,
+  getGanZhiYearSolarRange,
+} from '../lib/ganZhiSolarMapping'
 
 const pointToDateString = (point: LifeKlineChartPoint): string => {
   const level = point.level ?? (point.day ? 'day' : point.month ? 'month' : 'year')
   if (level === 'day') {
-    const m = point.month ?? 1
-    const d = point.day ?? 1
-    return `${point.year}-${pad2(m)}-${pad2(d)}`
+    return getGanZhiDaySolarYmd(point.year, point.month ?? 1, point.day ?? 1)
   }
   if (level === 'month') {
-    const m = point.month ?? 1
-    return `${point.year}-${pad2(m)}-01`
+    return getGanZhiMonthSolarRange(point.year, point.month ?? 1).startYmd
   }
-  return `${point.year}-01-01`
+  return getGanZhiYearSolarRange(point.year, point.ganZhi).startYmd
 }
 
 export const toCandle = (point: LifeKlineChartPoint): CandlestickData<Time> => ({

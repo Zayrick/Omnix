@@ -2,6 +2,7 @@ import { Chip, Typography } from '@mui/material'
 import type { Dayjs } from 'dayjs'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { traitCards } from '../model/constants'
+import { formatSolarRangeZh, getGanZhiMonthSolarRange, getGanZhiYearSolarRange } from '../lib/ganZhiSolarMapping'
 import type { DaYunInfo, LifeKlineResult, StreamState } from '../model/types'
 import type { LifeKlineMonthPointDto, LifeKlineYearPointDto } from '../../../../shared/dto/lifeKline'
 
@@ -46,6 +47,14 @@ export function LifeKLineDetail({
   onBack,
   onRestart,
 }: LifeKLineDetailProps) {
+  const selectedYearSolarRange =
+    selectedYearPoint ? formatSolarRangeZh(getGanZhiYearSolarRange(selectedYearPoint.year, selectedYearPoint.ganZhi)) : ''
+
+  const selectedMonthSolarRange =
+    selectedYearPoint && selectedMonthPoint
+      ? formatSolarRangeZh(getGanZhiMonthSolarRange(selectedYearPoint.year, selectedMonthPoint.month))
+      : ''
+
   const [traitInsertToken, setTraitInsertToken] = useState<Record<string, number>>({})
   const prevTraitTextRef = useRef<Record<string, string | undefined>>({})
   const traitInsertTimersRef = useRef<Record<string, number>>({})
@@ -131,9 +140,9 @@ export function LifeKLineDetail({
               {klineView === 'year'
                 ? '人生K线'
                 : klineView === 'month' && selectedYearPoint
-                  ? `月度K线 - ${selectedYearPoint.ganZhi}年（${selectedYearPoint.year}年）`
+                  ? `月度K线 - ${selectedYearPoint.ganZhi}年（${selectedYearSolarRange}）`
                   : klineView === 'day' && selectedYearPoint && selectedMonthPoint
-                    ? `日度K线 - ${selectedMonthPoint.ganZhi}月·${selectedYearPoint.ganZhi}年（${selectedYearPoint.year}年 ${selectedMonthPoint.month}月）`
+                    ? `日度K线 - ${selectedMonthPoint.ganZhi}月（${selectedMonthSolarRange}）·${selectedYearPoint.ganZhi}年（${selectedYearSolarRange}）`
                     : '人生K线'}
             </span>
             <span className="panel-hint">

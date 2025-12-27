@@ -437,9 +437,27 @@ body.life-kline-active {
   z-index: 1000;
 }
 
+.tooltip-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .tooltip-title {
   font-weight: 600;
-  margin-bottom: 4px;
+  margin: 0;
+}
+
+.tooltip-dayun {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
+.tooltip-time {
+  opacity: 0.9;
+  margin-bottom: 6px;
 }
 
 .tooltip-sub {
@@ -533,11 +551,9 @@ body.life-kline-active {
   text-align: right;
   transition: color 0.3s ease;
 }
-
 .trait-score-excellent {
   color: #10b981;
 }
-
 .trait-score-good {
   color: #5ad2bb;
 }
