@@ -92,6 +92,19 @@ function LifeKLine() {
 
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)')
 
+  useEffect(() => {
+    const root = document.documentElement
+    const body = document.body
+
+    root.classList.add('life-kline-active')
+    body.classList.add('life-kline-active')
+
+    return () => {
+      root.classList.remove('life-kline-active')
+      body.classList.remove('life-kline-active')
+    }
+  }, [])
+
   const theme = useMemo(
     () =>
       createTheme({

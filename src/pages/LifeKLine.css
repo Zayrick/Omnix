@@ -13,21 +13,40 @@
   --chip-bg: rgba(15, 159, 143, 0.12);
   background: linear-gradient(120deg, #f6f0e5 0%, #eef6f2 45%, #f7ebe0 100%);
   color: var(--ink);
-  min-height: 100%;
+  min-height: 100vh;
   width: 100%;
   padding: 32px 28px 64px;
   position: relative;
-  overflow: hidden;
+  isolation: isolate;
+}
+
+:root.life-kline-active,
+body.life-kline-active {
+  background: linear-gradient(120deg, #f6f0e5 0%, #eef6f2 45%, #f7ebe0 100%);
+  overflow-x: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root.life-kline-active,
+  body.life-kline-active {
+    background: linear-gradient(120deg, #0c1110 0%, #0b1514 50%, #0f1412 100%);
+  }
 }
 
 .life-kline-page::before,
 .life-kline-page::after {
   content: '';
-  position: absolute;
+  position: fixed;
   border-radius: 999px;
   filter: blur(0);
   opacity: 0.6;
   pointer-events: none;
+  z-index: 0;
+}
+
+.life-kline-page > * {
+  position: relative;
+  z-index: 1;
 }
 
 .life-kline-header,
@@ -605,20 +624,21 @@
 
 @media (max-width: 900px) {
   .life-kline-board {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
   }
 
   .chart-shell {
     height: 340px;
   }
 
-  .life-kline-board {
-    display: flex;
-    flex-direction: column-reverse;
-  }
-
+  /* 移动端：命盘信息/八字面板在上，K线图表在下 */
   .bazi-panel {
     order: -1;
+  }
+
+  .chart-panel {
+    order: 0;
   }
 
   .bazi-pillars {
@@ -628,7 +648,7 @@
 
 @media (max-width: 680px) {
   .life-kline-page {
-    padding: 24px 18px 48px;
+    padding: 24px 0 48px;
   }
 
   .life-kline-header {
@@ -638,6 +658,11 @@
 
   .traits-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* 手机端：K线图不要占太高，避免“顶天立地” */
+  .chart-shell {
+    height: clamp(220px, 38vh, 280px);
   }
 
   .bazi-pillars {
