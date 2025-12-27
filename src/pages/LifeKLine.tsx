@@ -37,6 +37,7 @@ import { createYamlStreamParser } from '../utils/yamlStreamParser'
 import './LifeKLine.css'
 
 type StreamState = 'idle' | 'loading' | 'streaming' | 'done' | 'error'
+type PageView = 'input' | 'detail'
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (char) => {
@@ -82,6 +83,7 @@ function LifeKLine() {
   const [streamState, setStreamState] = useState<StreamState>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [daYunList, setDaYunList] = useState<DaYunInfo[]>([])
+  const [currentPage, setCurrentPage] = useState<PageView>('input')
 
   const chartContainerRef = useRef<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
@@ -104,6 +106,13 @@ function LifeKLine() {
       body.classList.remove('life-kline-active')
     }
   }, [])
+
+  // 当 AI 开始输出时自动跳转到详情页
+  useEffect(() => {
+    if (streamState === 'streaming' && currentPage === 'input') {
+      setCurrentPage('detail')
+    }
+  }, [streamState, currentPage])
 
   const theme = useMemo(
     () =>
@@ -145,6 +154,10 @@ function LifeKLine() {
   )
 
   useEffect(() => {
+    if (currentPage !== 'detail') {
+      return
+    }
+
     if (!chartContainerRef.current) {
       return
     }
@@ -181,6 +194,15 @@ function LifeKLine() {
 
     chartRef.current = chart
     seriesRef.current = series
+
+    // 如果在切换到详情页之前已经收到部分/全部数据，初始化时回放一遍
+    const existingPoints = Array.from(chartPointsRef.current.values()).sort(
+      (a, b) => a.year - b.year
+    )
+    if (existingPoints.length) {
+      series.setData(existingPoints.map(toCandle))
+      chart.timeScale().fitContent()
+    }
 
     const handleCrosshairMove = (param: MouseEventParams) => {
       const tooltip = tooltipRef.current
@@ -238,7 +260,7 @@ function LifeKLine() {
       chart.unsubscribeCrosshairMove(handleCrosshairMove)
       chart.remove()
     }
-  }, [])
+  }, [currentPage])
 
   const handleGenderChange = (
     _event: MouseEvent<HTMLElement>,
@@ -381,6 +403,122 @@ function LifeKLine() {
             ? '发生错误'
             : '待启动'
 
+  // 输入页面
+  if (currentPage === 'input') {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <LocalizationProvider
+          dateAdapter={AdapterDayjs}
+          adapterLocale="zh-cn"
+          localeText={{
+            cancelButtonLabel: '取消',
+            okButtonLabel: '确定',
+            clearButtonLabel: '清除',
+            todayButtonLabel: '今天',
+          }}
+        >
+          <Box
+            className="life-kline-page life-kline-input-page"
+            data-theme={prefersDarkMode ? 'dark' : 'light'}
+          >
+            <div className="input-page-container">
+              <div className="input-page-header">
+                <Typography variant="h3" className="input-page-title">
+                  我的人生K线
+                </Typography>
+                <Typography className="input-page-subtitle">
+                  以干支与大运为底层逻辑，刻画人生涨跌脉冲
+                </Typography>
+              </div>
+
+              <div className="input-form-card">
+                {streamState === 'loading' ? (
+                  // 加载状态
+                  <div className="loading-state">
+                    <div className="loading-spinner">
+                      <div className="spinner-ring" />
+                      <div className="spinner-ring" />
+                      <div className="spinner-ring" />
+                    </div>
+                    <Typography className="loading-text">AI测算中</Typography>
+                    <Typography className="loading-hint">正在生成命理报告与人生K线，请稍候</Typography>
+                  </div>
+                ) : (
+                  // 表单
+                  <>
+                    <div className="input-form-title">填写出生信息</div>
+                    <div className="input-form-fields">
+                      <TextField
+                        label="姓名（可选）"
+                        placeholder="请输入姓名"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                      />
+                      <DatePicker
+                        label="出生日期"
+                        value={birthDate}
+                        onChange={(newValue) => setBirthDate(newValue)}
+                        maxDate={dayjs()}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            size: 'small',
+                            placeholder: '请选择出生日期',
+                          },
+                        }}
+                      />
+                      <TimePicker
+                        label="出生时间"
+                        value={birthTime}
+                        onChange={(newValue) => setBirthTime(newValue)}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            size: 'small',
+                            placeholder: '请选择出生时间',
+                          },
+                        }}
+                      />
+                      <Box className="gender-field">
+                        <Typography className="gender-label">性别</Typography>
+                        <ToggleButtonGroup
+                          value={gender}
+                          exclusive
+                          onChange={handleGenderChange}
+                          className="gender-toggle-group"
+                          fullWidth
+                        >
+                          <ToggleButton value="male">男</ToggleButton>
+                          <ToggleButton value="female">女</ToggleButton>
+                        </ToggleButtonGroup>
+                      </Box>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        onClick={handleSubmit}
+                        className="input-submit-btn"
+                      >
+                        启动人生K线
+                      </Button>
+                      {errorMessage && (
+                        <Typography className="error-text">{errorMessage}</Typography>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </Box>
+        </LocalizationProvider>
+      </ThemeProvider>
+    )
+  }
+
+  // 详情页面
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -425,118 +563,44 @@ function LifeKLine() {
             </div>
 
             <aside className="panel bazi-panel">
-              {analysis.bazi && analysis.bazi.length > 0 && analysis.bazi[0] !== '--' ? (
-                // 八字视图
-                <>
-                  <div className="panel-header">
-                    <span>八字命盘</span>
-                    <span className="panel-hint">四柱信息</span>
-                  </div>
-                  <div className="bazi-user-info">
-                    <span className="user-name">{name || '未命名'}</span>
-                    <span className="user-meta">
-                      {gender === 'male' ? '男' : '女'} · {birthDate?.format('YYYY年M月D日')} {birthTime?.format('HH:mm')}
-                    </span>
-                  </div>
-                  <div className="bazi-pillars">
-                    {['年柱', '月柱', '日柱', '时柱'].map((label, index) => {
-                      const pillar = analysis.bazi?.[index] ?? '--'
-                      const tianGan = pillar.charAt(0) || '-'
-                      const diZhi = pillar.charAt(1) || '-'
-                      return (
-                        <div key={label} className="bazi-pillar">
-                          <span className="pillar-label">{label}</span>
-                          <div className="pillar-chars">
-                            <span className="pillar-tiangan">{tianGan}</span>
-                            <span className="pillar-dizhi">{diZhi}</span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  {daYunList.length > 0 && (
-                    <div className="bazi-dayun">
-                      <div className="dayun-title">大运走势</div>
-                      <div className="dayun-list">
-                        {daYunList.slice(0, 9).map((item, index) => (
-                          <div key={index} className="dayun-item">
-                            <span className="dayun-ganzhi">{item.ganZhi}</span>
-                            <span className="dayun-meta">{item.startAge}-{item.endAge}岁</span>
-                          </div>
-                        ))}
+              <div className="panel-header">
+                <span>八字命盘</span>
+                <span className="panel-hint">四柱信息</span>
+              </div>
+              <div className="bazi-user-info">
+                <span className="user-name">{name || '未命名'}</span>
+                <span className="user-meta">
+                  {gender === 'male' ? '男' : '女'} · {birthDate?.format('YYYY年M月D日')} {birthTime?.format('HH:mm')}
+                </span>
+              </div>
+              <div className="bazi-pillars">
+                {['年柱', '月柱', '日柱', '时柱'].map((label, index) => {
+                  const pillar = analysis.bazi?.[index] ?? '--'
+                  const tianGan = pillar.charAt(0) || '-'
+                  const diZhi = pillar.charAt(1) || '-'
+                  return (
+                    <div key={label} className="bazi-pillar">
+                      <span className="pillar-label">{label}</span>
+                      <div className="pillar-chars">
+                        <span className="pillar-tiangan">{tianGan}</span>
+                        <span className="pillar-dizhi">{diZhi}</span>
                       </div>
                     </div>
-                  )}
-                </>
-              ) : (
-                // 输入表单
-                <>
-                  <div className="panel-header">
-                    <span>命盘信息</span>
-                    <span className="panel-hint">填写出生信息</span>
+                  )
+                })}
+              </div>
+              {daYunList.length > 0 && (
+                <div className="bazi-dayun">
+                  <div className="dayun-title">大运走势</div>
+                  <div className="dayun-list">
+                    {daYunList.slice(0, 9).map((item, index) => (
+                      <div key={index} className="dayun-item">
+                        <span className="dayun-ganzhi">{item.ganZhi}</span>
+                        <span className="dayun-meta">{item.startAge}-{item.endAge}岁</span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="bazi-form">
-                    <TextField
-                      label="姓名（可选）"
-                      placeholder="请输入姓名"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      variant="outlined"
-                      size="small"
-                      fullWidth
-                    />
-                    <DatePicker
-                      label="出生日期"
-                      value={birthDate}
-                      onChange={(newValue) => setBirthDate(newValue)}
-                      maxDate={dayjs()}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          size: 'small',
-                          placeholder: '请选择出生日期',
-                        },
-                      }}
-                    />
-                    <TimePicker
-                      label="出生时间"
-                      value={birthTime}
-                      onChange={(newValue) => setBirthTime(newValue)}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          size: 'small',
-                          placeholder: '请选择出生时间',
-                        },
-                      }}
-                    />
-                    <Box className="gender-field">
-                      <Typography className="gender-label">性别</Typography>
-                      <ToggleButtonGroup
-                        value={gender}
-                        exclusive
-                        onChange={handleGenderChange}
-                        className="gender-toggle-group"
-                        fullWidth
-                      >
-                        <ToggleButton value="male">男</ToggleButton>
-                        <ToggleButton value="female">女</ToggleButton>
-                      </ToggleButtonGroup>
-                    </Box>
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      onClick={handleSubmit}
-                      disabled={streamState === 'loading' || streamState === 'streaming'}
-                      className="bazi-submit-btn"
-                    >
-                      {streamState === 'loading' ? '连接中...' : '启动人生K线'}
-                    </Button>
-                    {errorMessage && (
-                      <Typography className="error-text">{errorMessage}</Typography>
-                    )}
-                  </div>
-                </>
+                </div>
               )}
             </aside>
           </section>
